@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  hashed_password    String
+  sessions           Session[]
+  roles              Role[]               @default([USER])
+  PasswordResetToken PasswordResetToken[]
+  createdAt          DateTime             @default(now())
+  boughtProducts     BoughtProduct[]
+  UserPayment        UserPayment[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  user      User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  expiresAt DateTime
+  user      User     @relation(references: [id], fields: [userId], onDelete: Cascade)
+}
+
+model BoughtProduct {
+  id        String  @id @default(cuid())
+  userId    String
+  productId String
+  user      User    @relation(fields: [userId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserPayment {
+  id            String   @id @default(cuid())
+  amount        Float
+  provider      String   @default("STRIPE")
+  createdAt     DateTime @default(now())
+  transactionId String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     String
+}
+
+model Product {
+  id String @id @default(cuid())
+
+  name          String          @unique
+  description   String
+  price         Float
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  BoughtProduct BoughtProduct[]
+
+  UserPayment UserPayment[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
